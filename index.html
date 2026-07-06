@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sanapeli</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #121213;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 10px;
+    margin: 0;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  * { box-sizing: border-box; }
+  h1 { margin-bottom: 0; }
+  #hint { color: #ccc; margin-bottom: 20px; }
+  #board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(6, 50px);
+    gap: 6px;
+  }
+  .cell {
+    width: 50px;
+    height: 50px;
+    border: 2px solid #3a3a3c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+    background: #121213;
+  }
+  .correct { background: #538d4e; border-color: #538d4e; }
+  .present { background: #b59f3b; border-color: #b59f3b; }
+  .absent { background: #3a3a3c; border-color: #3a3a3c; }
+  .filled { border-color: #888; }
+  .active-cell { border-color: #ffffff; box-shadow: 0 0 4px #fff inset; }
+
+  #input-area {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+  button {
+    font-size: 16px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    background: #538d4e;
+    color: white;
+    cursor: pointer;
+  }
+  button:hover { background: #457a41; }
+  #message {
+    min-height: 24px;
+    font-size: 18px;
+    margin-top: 10px;
+  }
+  #keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    margin-bottom: 15px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .kb-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  }
+  .key {
+    background: #818384;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    flex: 1;
+    max-width: 36px;
+    min-width: 26px;
+  }
+  .key:hover { background: #9a9b9c; }
+  .key-wide { max-width: 60px; }
+  .key-half { max-width: 100px; font-size: 13px; padding: 10px 0; }
+  .key.correct { background: #538d4e; }
+  .key.present { background: #b59f3b; }
+  .key.absent { background: #3a3a3c; color: #999; }
+</style>
+</head>
+<body>
+
+<h1>Sanapeli</h1>
+<div id="hint">Aihe: <span id="categoryName">-</span>, <span id="lengthInfo">6 kirjainta</span></div>
+<div id="levelInfo" style="color:#7fd67f; font-weight:bold; margin-bottom:2px;">Taso 1</div>
+<div id="scoreInfo" style="color:#e0c060; font-weight:bold; margin-bottom:10px;">Pisteet: 0</div>
+
+<div id="board"></div>
+
+<div id="keyboard"></div>
+
+<div id="hintMessage" style="color:#e0c060; min-height:20px;"></div>
+<div id="message"></div>
+
+<div id="leaderboard" style="margin-top:25px; border-top:1px solid #3a3a3c; padding-top:15px; width:100%; max-width:320px;">
+  <h3 style="margin-bottom:8px;">🏆 Parhaat tulokset</h3>
+  <div id="leaderboardList" style="font-size:14px;"></div>
+  <div style="font-size:11px; color:#777; margin-top:8px;">
+    
+  </div>
+</div>
+
+<div id="nicknameModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; z-index:1000;">
+  <div style="background:#1e1e1f; padding:25px; border-radius:8px; max-width:300px; width:85%; text-align:center;">
+    <div style="font-size:18px; margin-bottom:12px;">🏆 Uusi ennätys!</div>
+    <div id="nicknameScoreText" style="color:#e0c060; margin-bottom:15px;"></div>
+    <input type="text" id="nicknameInput" maxlength="12" placeholder="Nimimerkkisi"
+      style="width:100%; box-sizing:border-box; padding:10px; font-size:16px; border-radius:4px; border:none; text-align:center; margin-bottom:12px;">
+    <button onclick="confirmNickname()" style="width:100%;">Tallenna</button>
+  </div>
+</div>
+
+<script>
+// Kaikki sanat ovat oikeita suomenkielisiä sanoja (kielitoimiston sanakirjan mukaisia perusmuotoja),
+// jaoteltuna aihepiireittäin. Sanan pituus vaihtelee 4-8 kirjaimen välillä.
+// Aihepiiri ja sana arvotaan joka uudessa pelissä.
+const categories = {
+  "Adjektiivit": [
+    "KOVA", "HYVÄ", "UUSI", "ARKA", "OUTO", "AITO",
+    "NUORI", "VANHA", "TYHJÄ", "KUUMA", "KYLMÄ", "TYYNI", "PIENI", "NOPEA", "IKÄVÄ", "ANKEA", "TUORE", "TUMMA",
+    "HIDAS", "KIREÄ", "VAKAA", "SUORA", "HAURAS", "KYPSÄ", "AVOIN", "SELVÄ", "TUIMA", "YLPEÄ",
+    "HAUSKA", "ROTEVA", "VIHREÄ", "KAUNIS", "ROHKEA", "VAKAVA", "VALPAS", "ANKARA", "SIISTI", "TERÄVÄ", "PEHMEÄ", "LÄMMIN", "VÄKEVÄ", "VAALEA", "PIRTEÄ", "REIPAS",
+    "TARKKA", "MUKAVA", "TIUKKA", "PALJAS", "KARKEA", "VAIKEA", "HELPPO", "LEMPEÄ", "VILKAS",
+    "ONNEKAS", "ILOINEN", "VÄSYNYT", "ARMOTON", "VÄRIKÄS", "TOTINEN",
+    "VOIMAKAS", "KUULUISA", "LOISTAVA", "TASAINEN", "ALHAINEN"
+  ],
+  "Eläimet": [
+    "SUSI", "LOHI", "KUHA", "SIKA", "KANA", "RAPU",
+    "KISSA", "KOIRA", "HIRVI", "KARHU", "ILVES", "ORAVA", "JÄNIS", "VARIS", "KOTKA", "PÖLLÖ", "KETTU", "HAUKI", "MYYRÄ",
+    "SIILI", "KOBRA", "ANKKA", "PEURA", "AHVEN", "KARJU", "PUKKI", "VUOHI", "LINTU", "PANDA", "NORSU", "ETANA", "VALAS",
+    "MAJAVA", "HIRVAS", "KAMELI", "KARPPI", "LAMMAS", "PORSAS", "KOTILO", "SIRKKA",
+    "LEPAKKO", "KIRAHVI", "GORILLA", "KENGURU", "HEVONEN", "VASIKKA", "TIIKERI", "HAIKARA",
+    "LEOPARDI", "SAMMAKKO", "PERHONEN", "DELFIINI"
+  ],
+  "Ruoat": [
+    "MEHU", "KALA", "LIHA", "SOSE", "PAPU", "VESI", "OLUT", "MUNA",
+    "RIISI", "LEIPÄ", "MAITO", "SUOLA", "KAALI", "PASTA", "PIZZA", "KAHVI", "KAKKU", "KEKSI", "OMENA", "SIENI", "HERNE", "KAKAO", "VIINI", "MARJA",
+    "PERUNA", "SIPULI", "JUUSTO", "KURKKU", "SOKERI", "MAUSTE", "PIPARI", "SUKLAA", "KEITTO", "LEIVOS",
+    "PAPRIKA", "MAKKARA", "JÄÄTELÖ",
+    "MANSIKKA", "SITRUUNA", "PORKKANA", "VOILEIPÄ", "PIIRAKKA"
+  ],
+  "Luonto": [
+    "JOKI", "KIVI", "LUMI", "TULI", "SUMU", "SADE", "OKSA",
+    "JÄRVI", "VUORI", "PILVI", "TUULI", "SAARI", "NURMI", "TÄHTI", "METSÄ", "LEHTI", "KASTE", "AALTO", "RANTA", "LÄHDE", "KOSKI", "VIIMA", "HALLA", "NIEMI", "SALMI", "LAHTI",
+    "HIEKKA", "PUISTO", "NIITTY", "LAAKSO", "KALLIO", "TAIVAS", "MYRSKY",
+    "AURINKO", "KUKKULA", "TASANKO", "UKKONEN", "TUNTURI",
+    "METSIKKÖ"
+  ],
+  "Esineet": [
+    "KYNÄ", "PIPO",
+    "KELLO", "AVAIN", "PEILI", "TUOLI", "PÖYTÄ", "KIRJA", "REPPU", "TAKKI", "KENKÄ", "HUIVI", "PATJA", "PEITE", "TYYNY", "MATTO", "SÄNKY", "HYLLY", "KUPPI", "PULLO", "NAULA", "RUUVI", "RADIO",
+    "HANSKA", "LAUKKU", "LAMPPU", "KAMERA", "IKKUNA", "KAAPPI", "VEITSI", "VASARA",
+    "PUHELIN", "LUSIKKA", "PATTERI",
+    "LAATIKKO", "HAARUKKA", "LAUTANEN"
+  ],
+  "Ihmiset": [
+    "SETÄ", "TÄTI", "VELI", "ÄITI", "MIES",
+    "LAPSI", "SISKO", "KOKKI", "POIKA", "TYTTÖ", "VAUVA", "MYYJÄ",
+    "YSTÄVÄ", "NAINEN", "SERKKU", "ISOISÄ",
+    "NAAPURI", "MAALARI", "LÄÄKÄRI", "POLIISI", "ISOÄITI", "LAULAJA", "JOHTAJA",
+    "OPETTAJA", "MUUSIKKO", "TANSSIJA", "SIIVOOJA"
+  ],
+  "Liikenne": [
+    "AUTO", "JUNA", "VENE", "RATA", "MOPO",
+    "BUSSI", "LAIVA", "TAKSI", "PYÖRÄ", "SILTA", "LENTO", "MATKA", "ASEMA", "POLKU", "VAUNU",
+    "MOOTTORI", "REITTI", "SATAMA", "RENGAS",
+    "RAUTATIE"
+  ],
+  "Urheilu": [
+    "PELI", "GOLF", "SALI",
+    "UINTI", "PAINI", "JOOGA", "MAALI",
+    "TENNIS", "SHAKKI", "JUOKSU", "VOITTO", "HIIHTO", "OTTELU", "MITALI",
+    "PYÖRÄILY", "LUISTELU", "MELONTA", "JOUKKUE", "ENNÄTYS",
+    "SUKELLUS", "KIIPEILY", "KEILAILU"
+  ]
+};
+
+let targetWord = "";
+let currentCategory = "";
+let currentRow = 0;
+let currentGuess = []; // nykyisen rivin kirjaimet (kiinteä pituus, tyhjä = "")
+let cursorIndex = 0; // mihin kirjainpaikkaan seuraava näppäily/muokkaus kohdistuu
+const maxRows = 6; // yrityksiä aina 6, riippumatta sanan pituudesta
+let wordLength = 6; // vaihtelee 4-8 kirjaimen välillä, päivitetään newGame:ssa
+let hintsLeft = 3;
+let revealedPositions = [];   // vihjeellä paljastetut paikat
+let knownCorrectPositions = []; // pelaajan omilla arvauksilla jo selvittämät oikeat paikat
+let gameOver = false;
+let letterStates = {}; // kirjaimen paras tähän mennessä tiedetty tila: correct/present/absent
+let level = 1;
+let totalScore = 0; // nousee joka voitetulla sanalla, nollautuu kun peli alkaa alusta
+
+// Parhaat tulokset: tallennetaan selaimen localStorageen, jolloin lista säilyy myös
+// sivun sulkemisen/uudelleenavaamisen jälkeen (toimii normaalissa selaimessa, myös
+// iPhonen Safarissa tai Koti-näytölle lisättynä). Jos tallennus ei jostain syystä
+// onnistu (esim. tietyt rajoitetut esikatseluympäristöt), käytetään hiljaisesti
+// muistinvaraista listaa tämän istunnon ajan.
+let leaderboard = [];
+const LEADERBOARD_KEY = "sanapeli_leaderboard";
+
+function loadLeaderboard() {
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_KEY);
+    leaderboard = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    leaderboard = [];
+  }
+  renderLeaderboard();
+}
+
+function saveLeaderboardToStorage() {
+  try {
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
+  } catch (e) {
+    // Ei tallennu pysyvästi tässä ympäristössä, mutta lista pysyy muistissa istunnon ajan
+  }
+}
+
+function clearLeaderboard() {
+  leaderboard = [];
+  saveLeaderboardToStorage();
+  renderLeaderboard();
+}
+
+function renderLeaderboard() {
+  const container = document.getElementById("leaderboardList");
+  if (leaderboard.length === 0) {
+    container.innerHTML = "<div style='color:#888;'>Ei tuloksia vielä — pelaa päästäksesi listalle!</div>";
+    return;
+  }
+  let html = "";
+  leaderboard.forEach((entry, i) => {
+    html += "<div style='display:flex; justify-content:space-between; padding:3px 0;'>" +
+      "<span>" + (i + 1) + ". " + escapeHtml(entry.name) + "</span>" +
+      "<span style='color:#e0c060; font-weight:bold;'>" + entry.score + "</span>" +
+      "</div>";
+  });
+  container.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+let pendingNicknameCallback = null;
+let pendingScore = 0;
+
+function maybeAddToLeaderboard(finalScore, onDone) {
+  if (finalScore <= 0) return false;
+
+  const qualifies = leaderboard.length < 5 || finalScore > leaderboard[leaderboard.length - 1].score;
+  if (!qualifies) return false;
+
+  pendingNicknameCallback = onDone;
+  pendingScore = finalScore;
+  document.getElementById("nicknameScoreText").textContent = "Pistemääräsi: " + finalScore;
+  const input = document.getElementById("nicknameInput");
+  input.value = "";
+  document.getElementById("nicknameModal").style.display = "flex";
+  setTimeout(() => input.focus(), 50);
+  return true;
+}
+
+function confirmNickname() {
+  const input = document.getElementById("nicknameInput");
+  let name = input.value.trim().slice(0, 12);
+  if (!name) name = "Nimetön";
+
+  leaderboard.push({ name: name, score: pendingScore });
+  leaderboard.sort((a, b) => b.score - a.score);
+  leaderboard = leaderboard.slice(0, 5);
+  saveLeaderboardToStorage();
+  renderLeaderboard();
+
+  document.getElementById("nicknameModal").style.display = "none";
+
+  const callback = pendingNicknameCallback;
+  pendingNicknameCallback = null;
+  if (callback) callback();
+}
+
+const keyboardRows = [
+  ["Q","W","E","R","T","Y","U","I","O","P","Å"],
+  ["A","S","D","F","G","H","J","K","L","Ö","Ä"],
+  ["Z","X","C","V","B","N","M","⌫"],
+  ["TARKISTA","VIHJE"]
+];
+
+function newGame(resetLevel = true) {
+  if (resetLevel) {
+    level = 1;
+    totalScore = 0;
+  }
+
+  const categoryNames = Object.keys(categories);
+  currentCategory = categoryNames[Math.floor(Math.random() * categoryNames.length)];
+  const wordList = categories[currentCategory];
+  targetWord = wordList[Math.floor(Math.random() * wordList.length)];
+  wordLength = [...targetWord].length;
+
+  currentRow = 0;
+  currentGuess = new Array(wordLength).fill("");
+  cursorIndex = 0;
+  hintsLeft = 3;
+  revealedPositions = [];
+  knownCorrectPositions = [];
+  gameOver = false;
+  letterStates = {};
+
+  document.getElementById("categoryName").textContent = currentCategory;
+  document.getElementById("lengthInfo").textContent = wordLength + " kirjainta";
+  document.getElementById("levelInfo").textContent = "Taso " + level;
+  document.getElementById("scoreInfo").textContent = "Pisteet: " + totalScore;
+  document.getElementById("message").textContent = "";
+  document.getElementById("hintMessage").textContent = "";
+  buildBoard();
+  buildKeyboard();
+  updateRowDisplay();
+}
+
+function buildKeyboard() {
+  const kb = document.getElementById("keyboard");
+  kb.innerHTML = "";
+  keyboardRows.forEach(rowKeys => {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "kb-row";
+    rowKeys.forEach(k => {
+      const btn = document.createElement("button");
+      btn.className = "key";
+      btn.id = "key-" + k;
+      btn.textContent = k === "VIHJE" ? ("Vihje (" + hintsLeft + ")") : k;
+      if (k === "TARKISTA" || k === "VIHJE") btn.classList.add("key-half");
+      if (k === "⌫") btn.classList.add("key-wide");
+      if (k === "TARKISTA") {
+        btn.style.background = "#538d4e";
+      }
+      if (k === "VIHJE") {
+        btn.style.background = "#b59f3b";
+      }
+      btn.addEventListener("click", () => handleKeyPress(k));
+      rowDiv.appendChild(btn);
+    });
+    kb.appendChild(rowDiv);
+  });
+}
+
+function handleKeyPress(key) {
+  if (gameOver) return;
+
+  if (key === "TARKISTA") {
+    checkWord();
+    return;
+  }
+  if (key === "⌫") {
+    if (currentGuess[cursorIndex]) {
+      // Poistetaan kursorin kohdalla oleva kirjain, kursori pysyy paikallaan
+      currentGuess[cursorIndex] = "";
+    } else if (cursorIndex > 0) {
+      // Solu oli jo tyhjä, siirrytään taakse ja poistetaan sieltä
+      cursorIndex--;
+      currentGuess[cursorIndex] = "";
+    }
+    updateRowDisplay();
+    return;
+  }
+  if (key === "VIHJE") {
+    useHint();
+    return;
+  }
+
+  // Kirjoitetaan kursorin kohdalle ja siirrytään seuraavaan tyhjään/paikkaan
+  currentGuess[cursorIndex] = key;
+  if (cursorIndex < wordLength - 1) {
+    cursorIndex++;
+  }
+  updateRowDisplay();
+}
+
+function updateKeyboardColors() {
+  const priority = { absent: 0, present: 1, correct: 2 };
+  for (const letter in letterStates) {
+    const btn = document.getElementById("key-" + letter);
+    if (!btn) continue;
+    btn.classList.remove("correct", "present", "absent");
+    btn.classList.add(letterStates[letter]);
+  }
+}
+
+function useHint() {
+  if (hintsLeft <= 0) return;
+
+  const remainingPositions = [];
+  for (let i = 0; i < wordLength; i++) {
+    if (!revealedPositions.includes(i) && !knownCorrectPositions.includes(i)) {
+      remainingPositions.push(i);
+    }
+  }
+  if (remainingPositions.length === 0) {
+    document.getElementById("hintMessage").textContent = "Kaikki kirjaimet on jo selvitetty!";
+    return;
+  }
+
+  const pos = remainingPositions[Math.floor(Math.random() * remainingPositions.length)];
+  revealedPositions.push(pos);
+  hintsLeft--;
+
+  const letter = [...targetWord][pos];
+  document.getElementById("hintMessage").textContent =
+    "Vihje: kirjain " + (pos + 1) + " on \"" + letter + "\"";
+  const hintKey = document.getElementById("key-VIHJE");
+  hintKey.textContent = "Vihje (" + hintsLeft + ")";
+  if (hintsLeft <= 0) hintKey.disabled = true;
+}
+
+function buildBoard() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  // Pienennetään ruutuja jos sana on pitkä, jotta rivi mahtuu näytölle
+  let cellSize = 50;
+  if (wordLength >= 7) cellSize = 40;
+  if (wordLength >= 8) cellSize = 36;
+
+  for (let r = 0; r < maxRows; r++) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.id = "row-" + r;
+    row.style.gridTemplateColumns = "repeat(" + wordLength + ", " + cellSize + "px)";
+    for (let c = 0; c < wordLength; c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.id = "cell-" + r + "-" + c;
+      cell.style.width = cellSize + "px";
+      cell.style.height = cellSize + "px";
+      cell.style.fontSize = (cellSize >= 45 ? 24 : 18) + "px";
+      cell.addEventListener("click", () => selectCell(r, c));
+      row.appendChild(cell);
+    }
+    board.appendChild(row);
+  }
+}
+
+function selectCell(row, col) {
+  if (gameOver) return;
+  if (row !== currentRow) return;
+  cursorIndex = col;
+  updateRowDisplay();
+}
+
+function updateRowDisplay() {
+  for (let i = 0; i < wordLength; i++) {
+    const cell = document.getElementById("cell-" + currentRow + "-" + i);
+    cell.textContent = currentGuess[i] || "";
+    if (currentGuess[i]) {
+      cell.classList.add("filled");
+    } else {
+      cell.classList.remove("filled");
+    }
+    if (i === cursorIndex) {
+      cell.classList.add("active-cell");
+    } else {
+      cell.classList.remove("active-cell");
+    }
+  }
+}
+
+function checkWord() {
+  if (gameOver) return;
+
+  if (currentGuess.some(letter => !letter)) {
+    showMessage("Täytä kaikki " + wordLength + " kirjainta!");
+    return;
+  }
+
+  const guess = currentGuess.join("");
+  const targetLetters = [...targetWord];
+  const guessLetters = [...guess];
+  const result = new Array(wordLength).fill("absent");
+  const targetUsed = new Array(wordLength).fill(false);
+
+  // Ensin tarkat osumat
+  for (let i = 0; i < wordLength; i++) {
+    if (guessLetters[i] === targetLetters[i]) {
+      result[i] = "correct";
+      targetUsed[i] = true;
+    }
+  }
+
+  // Sitten väärässä paikassa olevat
+  for (let i = 0; i < wordLength; i++) {
+    if (result[i] === "correct") continue;
+    for (let j = 0; j < wordLength; j++) {
+      if (!targetUsed[j] && guessLetters[i] === targetLetters[j]) {
+        result[i] = "present";
+        targetUsed[j] = true;
+        break;
+      }
+    }
+  }
+
+  // Näytetään rivi väreillä
+  for (let i = 0; i < wordLength; i++) {
+    const cell = document.getElementById("cell-" + currentRow + "-" + i);
+    cell.textContent = guessLetters[i];
+    cell.classList.remove("filled");
+    cell.classList.add(result[i]);
+    if (result[i] === "correct" && !knownCorrectPositions.includes(i)) {
+      knownCorrectPositions.push(i);
+    }
+
+    // Päivitetään näppäimistön väri (correct > present > absent, ei koskaan huononneta)
+    const letter = guessLetters[i];
+    const priority = { absent: 0, present: 1, correct: 2 };
+    const currentState = letterStates[letter];
+    if (!currentState || priority[result[i]] > priority[currentState]) {
+      letterStates[letter] = result[i];
+    }
+  }
+  updateKeyboardColors();
+
+  if (guess === targetWord) {
+    const pointsEarned = maxRows - currentRow; // rivi 0 (1. yritys) = 6p ... rivi 5 (6. yritys) = 1p
+    totalScore += pointsEarned;
+    document.getElementById("scoreInfo").textContent = "Pisteet: " + totalScore;
+
+    showMessage("🎉 Oikein! Sana oli " + targetWord + " (+" + pointsEarned + "p) — seuraava taso alkaa pian...");
+    gameOver = true;
+    document.getElementById("key-VIHJE").disabled = true;
+    level++;
+    setTimeout(() => newGame(false), 1500);
+    return;
+  }
+
+  currentRow++;
+  currentGuess = new Array(wordLength).fill("");
+  cursorIndex = 0;
+
+  if (currentRow >= maxRows) {
+    showMessage("Peli päättyi. Oikea sana oli: " + targetWord + " — lopullinen pistemäärä: " + totalScore);
+    gameOver = true;
+    document.getElementById("key-VIHJE").disabled = true;
+
+    // Yritetään lisätä tulostaululle; jos kysely näytetään, peli jatkuu vasta
+    // kun käyttäjä on kuitannut sen (ks. confirmNickname-funktio).
+    const askedForName = maybeAddToLeaderboard(totalScore, () => newGame(true));
+    if (!askedForName) {
+      setTimeout(() => newGame(true), 2000); // ei kyselyä, mutta annetaan hetki lukea loppuviesti
+    }
+    return;
+  }
+
+  updateRowDisplay();
+}
+
+function showMessage(msg) {
+  document.getElementById("message").textContent = msg;
+}
+
+const finnishLetterRegex = /^[A-ZÅÄÖ]$/i;
+
+document.addEventListener("keydown", function(e) {
+  if (gameOver) return;
+
+  if (e.key === "Enter") {
+    handleKeyPress("TARKISTA");
+    return;
+  }
+
+  if (e.key === "Backspace") {
+    handleKeyPress("⌫");
+    return;
+  }
+
+  if (finnishLetterRegex.test(e.key) && e.key.length === 1) {
+    handleKeyPress(e.key.toUpperCase());
+  }
+});
+
+loadLeaderboard();
+renderLeaderboard();
+
+document.getElementById("nicknameInput").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    confirmNickname();
+  }
+});
+
+newGame();
+</script>
+
+</body>
+</html>
