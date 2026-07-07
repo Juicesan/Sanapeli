@@ -122,7 +122,7 @@
   <h3 style="margin-bottom:8px;">🏆 Parhaat tulokset</h3>
   <div id="leaderboardList" style="font-size:14px;"></div>
   <div style="font-size:11px; color:#777; margin-top:8px;">
-    
+    (Yhteinen tuloslista kaikille pelaajille — päivittyy kun peli ladataan)
   </div>
 </div>
 
@@ -216,15 +216,17 @@ let letterStates = {}; // kirjaimen paras tähän mennessä tiedetty tila: corre
 let level = 1;
 let totalScore = 0; // nousee joka voitetulla sanalla, nollautuu kun peli alkaa alusta
 
-// Parhaat tulokset: tallennetaan selaimen localStorageen, jolloin lista säilyy myös
-// sivun sulkemisen/uudelleenavaamisen jälkeen (toimii normaalissa selaimessa, myös
-// iPhonen Safarissa tai Koti-näytölle lisättynä). Jos tallennus ei jostain syystä
-// onnistu (esim. tietyt rajoitetut esikatseluympäristöt), käytetään hiljaisesti
-// muistinvaraista listaa tämän istunnon ajan.
+// Parhaat tulokset: tallennetaan jsonbin.io-palveluun, jolloin lista on YHTEINEN
+// kaikille pelaajille (ei vain oman selaimen muistissa). Paikallinen localStorage
+// toimii varajärjestelmänä/välimuistina jos verkkoyhteys pätkii.
 let leaderboard = [];
 const LEADERBOARD_KEY = "sanapeli_leaderboard";
+const JSONBIN_BIN_ID = "6a4d4668f5f4af5e296dcd9b";
+const JSONBIN_MASTER_KEY = "$2a$10$jvIugvyStpwsPeJMH1mApeff98LdrrZtND1tjWd7Xfed6KEiFHmNi";
+const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_BIN_ID;
 
 function loadLeaderboard() {
+  // Näytetään ensin mahdollinen paikallinen kopio heti, ettei näytä tyhjältä hetken
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
     leaderboard = raw ? JSON.parse(raw) : [];
@@ -232,14 +234,75 @@ function loadLeaderboard() {
     leaderboard = [];
   }
   renderLeaderboard();
+
+  // Sitten haetaan tuorein yhteinen lista jsonbinista
+  fetch(JSONBIN_URL + "/latest", {
+    headers: { "X-Master-Key": JSONBIN_MASTER_KEY }
+  })
+    .then(res => res.ok ? res.json() : Promise.reject(res.status))
+    .then(data => {
+      const scores = data && data.record && Array.isArray(data.record.scores) ? data.record.scores : [];
+      leaderboard = scores;
+      saveLeaderboardLocalCache();
+      renderLeaderboard();
+    })
+    .catch((err) => {
+      console.warn("Yhteisen tuloslistan haku epäonnistui, käytetään paikallista kopiota:", err);
+    });
 }
 
-function saveLeaderboardToStorage() {
+function saveLeaderboardLocalCache() {
   try {
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
   } catch (e) {
-    // Ei tallennu pysyvästi tässä ympäristössä, mutta lista pysyy muistissa istunnon ajan
+    // Ei tallennu paikallisesti tässä ympäristössä, ei haittaa
   }
+}
+
+function saveLeaderboardToStorage() {
+  saveLeaderboardLocalCache();
+
+  // Haetaan ensin tuorein yhteinen lista (jottei ylikirjoiteta jonkun toisen juuri
+  // lisäämää tulosta), yhdistetään oma uusi tuloksemme siihen, ja lähetetään
+  // koko yhdistetty top-5-lista takaisin.
+  fetch(JSONBIN_URL + "/latest", {
+    headers: { "X-Master-Key": JSONBIN_MASTER_KEY }
+  })
+    .then(res => res.ok ? res.json() : Promise.reject(res.status))
+    .then(data => {
+      const remoteScores = data && data.record && Array.isArray(data.record.scores) ? data.record.scores : [];
+      let merged = remoteScores.concat(leaderboard);
+
+      const seen = new Set();
+      merged = merged.filter(entry => {
+        const key = entry.name + "|" + entry.score;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      merged.sort((a, b) => b.score - a.score);
+      merged = merged.slice(0, 5);
+      leaderboard = merged;
+      saveLeaderboardLocalCache();
+      renderLeaderboard();
+
+      return fetch(JSONBIN_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": JSONBIN_MASTER_KEY
+        },
+        body: JSON.stringify({ scores: leaderboard })
+      });
+    })
+    .then(res => {
+      if (res && !res.ok) {
+        console.warn("Yhteisen tuloslistan tallennus epäonnistui, tila:", res.status);
+      }
+    })
+    .catch((err) => {
+      console.warn("Yhteisen tuloslistan tallennus epäonnistui, tulos jäi vain paikalliseksi:", err);
+    });
 }
 
 function clearLeaderboard() {
@@ -251,7 +314,7 @@ function clearLeaderboard() {
 function renderLeaderboard() {
   const container = document.getElementById("leaderboardList");
   if (leaderboard.length === 0) {
-    container.innerHTML = "<div style='color:#888;'>Ei tuloksia vielä — pelaa päästäksesi listalle!</div>";
+    container.innerHTML = "<div style='color:#888;'>Ei tuloksia vielä — pelaa ja hävitse päästäksesi listalle!</div>";
     return;
   }
   let html = "";
@@ -295,10 +358,8 @@ function confirmNickname() {
   if (!name) name = "Nimetön";
 
   leaderboard.push({ name: name, score: pendingScore });
-  leaderboard.sort((a, b) => b.score - a.score);
-  leaderboard = leaderboard.slice(0, 5);
-  saveLeaderboardToStorage();
-  renderLeaderboard();
+  renderLeaderboard(); // näytetään heti paikallinen arvio
+  saveLeaderboardToStorage(); // hakee, yhdistää ja tallentaa yhteiseen listaan taustalla
 
   document.getElementById("nicknameModal").style.display = "none";
 
@@ -381,10 +442,8 @@ function handleKeyPress(key) {
   }
   if (key === "⌫") {
     if (currentGuess[cursorIndex]) {
-      // Poistetaan kursorin kohdalla oleva kirjain, kursori pysyy paikallaan
       currentGuess[cursorIndex] = "";
     } else if (cursorIndex > 0) {
-      // Solu oli jo tyhjä, siirrytään taakse ja poistetaan sieltä
       cursorIndex--;
       currentGuess[cursorIndex] = "";
     }
@@ -396,7 +455,6 @@ function handleKeyPress(key) {
     return;
   }
 
-  // Kirjoitetaan kursorin kohdalle ja siirrytään seuraavaan tyhjään/paikkaan
   currentGuess[cursorIndex] = key;
   if (cursorIndex < wordLength - 1) {
     cursorIndex++;
@@ -444,7 +502,6 @@ function buildBoard() {
   const board = document.getElementById("board");
   board.innerHTML = "";
 
-  // Pienennetään ruutuja jos sana on pitkä, jotta rivi mahtuu näytölle
   let cellSize = 50;
   if (wordLength >= 7) cellSize = 40;
   if (wordLength >= 8) cellSize = 36;
@@ -506,7 +563,6 @@ function checkWord() {
   const result = new Array(wordLength).fill("absent");
   const targetUsed = new Array(wordLength).fill(false);
 
-  // Ensin tarkat osumat
   for (let i = 0; i < wordLength; i++) {
     if (guessLetters[i] === targetLetters[i]) {
       result[i] = "correct";
@@ -514,7 +570,6 @@ function checkWord() {
     }
   }
 
-  // Sitten väärässä paikassa olevat
   for (let i = 0; i < wordLength; i++) {
     if (result[i] === "correct") continue;
     for (let j = 0; j < wordLength; j++) {
@@ -526,7 +581,6 @@ function checkWord() {
     }
   }
 
-  // Näytetään rivi väreillä
   for (let i = 0; i < wordLength; i++) {
     const cell = document.getElementById("cell-" + currentRow + "-" + i);
     cell.textContent = guessLetters[i];
@@ -536,7 +590,6 @@ function checkWord() {
       knownCorrectPositions.push(i);
     }
 
-    // Päivitetään näppäimistön väri (correct > present > absent, ei koskaan huononneta)
     const letter = guessLetters[i];
     const priority = { absent: 0, present: 1, correct: 2 };
     const currentState = letterStates[letter];
@@ -547,7 +600,7 @@ function checkWord() {
   updateKeyboardColors();
 
   if (guess === targetWord) {
-    const pointsEarned = maxRows - currentRow; // rivi 0 (1. yritys) = 6p ... rivi 5 (6. yritys) = 1p
+    const pointsEarned = maxRows - currentRow;
     totalScore += pointsEarned;
     document.getElementById("scoreInfo").textContent = "Pisteet: " + totalScore;
 
@@ -568,11 +621,9 @@ function checkWord() {
     gameOver = true;
     document.getElementById("key-VIHJE").disabled = true;
 
-    // Yritetään lisätä tulostaululle; jos kysely näytetään, peli jatkuu vasta
-    // kun käyttäjä on kuitannut sen (ks. confirmNickname-funktio).
     const askedForName = maybeAddToLeaderboard(totalScore, () => newGame(true));
     if (!askedForName) {
-      setTimeout(() => newGame(true), 2000); // ei kyselyä, mutta annetaan hetki lukea loppuviesti
+      setTimeout(() => newGame(true), 2000);
     }
     return;
   }
