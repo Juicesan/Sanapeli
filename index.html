@@ -142,10 +142,10 @@
 // Aihepiiri ja sana arvotaan joka uudessa pelissä.
 const categories = {
   "Adjektiivit": [
-    "KOVA", "HYVÄ", "UUSI", "ARKA", "OUTO", "AITO",
+    "KOVA", "HYVÄ", "UUSI", "ARKA", "OUTO", "AITO", "KARU",
     "NUORI", "VANHA", "TYHJÄ", "KUUMA", "KYLMÄ", "TYYNI", "PIENI", "NOPEA", "IKÄVÄ", "ANKEA", "TUORE", "TUMMA",
-    "HIDAS", "KIREÄ", "VAKAA", "SUORA", "HAURAS", "KYPSÄ", "AVOIN", "SELVÄ", "TUIMA", "YLPEÄ",
-    "HAUSKA", "ROTEVA", "VIHREÄ", "KAUNIS", "ROHKEA", "VAKAVA", "VALPAS", "ANKARA", "SIISTI", "TERÄVÄ", "PEHMEÄ", "LÄMMIN", "VÄKEVÄ", "VAALEA", "PIRTEÄ", "REIPAS",
+    "HIDAS", "KIREÄ", "VAKAA", "SUORA", "HAURAS", "KYPSÄ", "AVOIN", "SELVÄ", "TUIMA", "YLPEÄ", "NOPSA", "RIKAS", "KÖYHÄ", "IHANA", "TYVEN", "KUIVA", "MÄRKÄ", "TERVE",
+    "HAUSKA", "ROTEVA", "VIHREÄ", "KAUNIS", "ROHKEA", "VAKAVA", "VALPAS", "ANKARA", "SIISTI", "TERÄVÄ", "PEHMEÄ", "LÄMMIN", "VÄKEVÄ", "VAALEA", "PIRTEÄ", "REIPAS", "KUULAS",
     "TARKKA", "MUKAVA", "TIUKKA", "PALJAS", "KARKEA", "VAIKEA", "HELPPO", "LEMPEÄ", "VILKAS",
     "ONNEKAS", "ILOINEN", "VÄSYNYT", "ARMOTON", "VÄRIKÄS", "TOTINEN",
     "VOIMAKAS", "KUULUISA", "LOISTAVA", "TASAINEN", "ALHAINEN"
@@ -153,51 +153,59 @@ const categories = {
   "Eläimet": [
     "SUSI", "LOHI", "KUHA", "SIKA", "KANA", "RAPU",
     "KISSA", "KOIRA", "HIRVI", "KARHU", "ILVES", "ORAVA", "JÄNIS", "VARIS", "KOTKA", "PÖLLÖ", "KETTU", "HAUKI", "MYYRÄ",
-    "SIILI", "KOBRA", "ANKKA", "PEURA", "AHVEN", "KARJU", "PUKKI", "VUOHI", "LINTU", "PANDA", "NORSU", "ETANA", "VALAS",
-    "MAJAVA", "HIRVAS", "KAMELI", "KARPPI", "LAMMAS", "PORSAS", "KOTILO", "SIRKKA",
-    "LEPAKKO", "KIRAHVI", "GORILLA", "KENGURU", "HEVONEN", "VASIKKA", "TIIKERI", "HAIKARA",
-    "LEOPARDI", "SAMMAKKO", "PERHONEN", "DELFIINI"
+    "HANHI", "MARSU", "KOALA", "TIKKA", "LOKKI", "KURKI", "MÄYRÄ",
+    "SIILI", "KOBRA", "ANKKA", "PEURA", "AHVEN", "KARJU", "PUKKI", "VUOHI", "LINTU", "PANDA", "NORSU", "ETANA", "VALAS", "SEEPRA", "TOUKKA", "HAUKKA", "KUKKO", "PEIPPO", "HÄRKÄ", "LEHMÄ",
+    "MAJAVA", "HIRVAS", "KAMELI", "KARPPI", "LAMMAS", "PORSAS", "KOTILO", "SIRKKA", "KYYHKY", "JOUTSEN",
+    "LEPAKKO", "KIRAHVI", "GORILLA", "KENGURU", "HEVONEN", "VASIKKA", "TIIKERI", "HAIKARA", "MURMELI", "LEIJONA",
+    "LEOPARDI", "SAMMAKKO", "PERHONEN", "DELFIINI", "HAMSTERI", "SIMPUKKA", "ANKERIAS", "PANTTERI"
   ],
   "Ruoat": [
-    "MEHU", "KALA", "LIHA", "SOSE", "PAPU", "VESI", "OLUT", "MUNA",
-    "RIISI", "LEIPÄ", "MAITO", "SUOLA", "KAALI", "PASTA", "PIZZA", "KAHVI", "KAKKU", "KEKSI", "OMENA", "SIENI", "HERNE", "KAKAO", "VIINI", "MARJA",
-    "PERUNA", "SIPULI", "JUUSTO", "KURKKU", "SOKERI", "MAUSTE", "PIPARI", "SUKLAA", "KEITTO", "LEIVOS",
-    "PAPRIKA", "MAKKARA", "JÄÄTELÖ",
-    "MANSIKKA", "SITRUUNA", "PORKKANA", "VOILEIPÄ", "PIIRAKKA"
+    "MEHU", "KALA", "LIHA", "SOSE", "PAPU", "VESI", "OLUT", "MUNA", "PATA",
+    "RIISI", "LEIPÄ", "MAITO", "SUOLA", "KAALI", "PASTA", "PIZZA", "KAHVI", "KAKKU", "KEKSI", "OMENA", "SIENI", "HERNE", "KAKAO", "VIINI", "MARJA", "PUURO", "KEBAB",
+    "PERUNA", "SIPULI", "JUUSTO", "KURKKU", "SOKERI", "MAUSTE", "PIPARI", "SUKLAA", "KEITTO", "LEIVOS", "HUNAJA", "LOUNAS", "ATERIA", "HERKKU",
+    "PAPRIKA", "MAKKARA", "JÄÄTELÖ", "KASTIKE", "MUFFINI", "NUUDELI",
+    "MANSIKKA", "SITRUUNA", "PORKKANA", "VOILEIPÄ", "PIIRAKKA", "SALAATTI", "VÄLIPALA", "AAMUPALA"
   ],
   "Luonto": [
-    "JOKI", "KIVI", "LUMI", "TULI", "SUMU", "SADE", "OKSA",
-    "JÄRVI", "VUORI", "PILVI", "TUULI", "SAARI", "NURMI", "TÄHTI", "METSÄ", "LEHTI", "KASTE", "AALTO", "RANTA", "LÄHDE", "KOSKI", "VIIMA", "HALLA", "NIEMI", "SALMI", "LAHTI",
-    "HIEKKA", "PUISTO", "NIITTY", "LAAKSO", "KALLIO", "TAIVAS", "MYRSKY",
-    "AURINKO", "KUKKULA", "TASANKO", "UKKONEN", "TUNTURI",
-    "METSIKKÖ"
+    "JOKI", "KIVI", "LUMI", "TULI", "SUMU", "SADE", "OKSA", "NEVA",
+    "JÄRVI", "VUORI", "PILVI", "TUULI", "SAARI", "NURMI", "TÄHTI", "METSÄ", "LEHTI", "KASTE", "AALTO", "RANTA", "LÄHDE", "KOSKI", "VIIMA", "HALLA", "NIEMI", "SALMI", "LAHTI", "LUOTO", "VYÖRY", "ROTKO", "KUUSI", "MÄNTY", "KOIVU", "LEHTO", "VUONO",
+    "HIEKKA", "PUISTO", "NIITTY", "LAAKSO", "KALLIO", "TAIVAS", "MYRSKY", "SUISTO", "KANGAS",
+    "AURINKO", "KUKKULA", "TASANKO", "UKKONEN", "TUNTURI", "ILMASTO", "MAISEMA",
+    "METSIKKÖ", "PAKKANEN"
   ],
   "Esineet": [
     "KYNÄ", "PIPO",
-    "KELLO", "AVAIN", "PEILI", "TUOLI", "PÖYTÄ", "KIRJA", "REPPU", "TAKKI", "KENKÄ", "HUIVI", "PATJA", "PEITE", "TYYNY", "MATTO", "SÄNKY", "HYLLY", "KUPPI", "PULLO", "NAULA", "RUUVI", "RADIO",
-    "HANSKA", "LAUKKU", "LAMPPU", "KAMERA", "IKKUNA", "KAAPPI", "VEITSI", "VASARA",
-    "PUHELIN", "LUSIKKA", "PATTERI",
-    "LAATIKKO", "HAARUKKA", "LAUTANEN"
+    "KELLO", "AVAIN", "PEILI", "TUOLI", "PÖYTÄ", "KIRJA", "REPPU", "TAKKI", "KENKÄ", "HUIVI", "PATJA", "PEITE", "TYYNY", "MATTO", "SÄNKY", "HYLLY", "KUPPI", "PULLO", "NAULA", "RUUVI", "RADIO", "SÄKKI", "TIKAS", "NEULA", "LANKA", "PURJE",
+    "HANSKA", "LAUKKU", "LAMPPU", "KAMERA", "IKKUNA", "KAAPPI", "VEITSI", "VASARA", "PENKKI", "PATSAS", "KIRVES", "SATULA",
+    "PUHELIN", "LUSIKKA", "PATTERI", "KIIKARI",
+    "LAATIKKO", "HAARUKKA", "LAUTANEN", "VALAISIN", "KYNTTILÄ"
   ],
   "Ihmiset": [
     "SETÄ", "TÄTI", "VELI", "ÄITI", "MIES",
-    "LAPSI", "SISKO", "KOKKI", "POIKA", "TYTTÖ", "VAUVA", "MYYJÄ",
+    "LAPSI", "SISKO", "KOKKI", "POIKA", "TYTTÖ", "VAUVA", "MYYJÄ", "PAPPI", "KUSKI", "VAIMO",
     "YSTÄVÄ", "NAINEN", "SERKKU", "ISOISÄ",
-    "NAAPURI", "MAALARI", "LÄÄKÄRI", "POLIISI", "ISOÄITI", "LAULAJA", "JOHTAJA",
-    "OPETTAJA", "MUUSIKKO", "TANSSIJA", "SIIVOOJA"
+    "NAAPURI", "MAALARI", "LÄÄKÄRI", "POLIISI", "ISOÄITI", "LAULAJA", "JOHTAJA", "SOTILAS", "TUTKIJA", "PUOLISO",
+    "OPETTAJA", "MUUSIKKO", "TANSSIJA", "SIIVOOJA", "PUUSEPPÄ", "AVIOMIES"
   ],
   "Liikenne": [
     "AUTO", "JUNA", "VENE", "RATA", "MOPO",
-    "BUSSI", "LAIVA", "TAKSI", "PYÖRÄ", "SILTA", "LENTO", "MATKA", "ASEMA", "POLKU", "VAUNU",
-    "MOOTTORI", "REITTI", "SATAMA", "RENGAS",
-    "RAUTATIE"
+    "BUSSI", "LAIVA", "TAKSI", "PYÖRÄ", "SILTA", "LENTO", "MATKA", "ASEMA", "POLKU", "VAUNU", "LAUTTA", "NOPEUS", "KAISTA", "OHJAUS",
+    "MOOTTORI", "REITTI", "SATAMA", "RENGAS", "PYSÄKKI",
+    "RAUTATIE", "AJONEUVO", "LIIKENNE"
   ],
   "Urheilu": [
     "PELI", "GOLF", "SALI",
-    "UINTI", "PAINI", "JOOGA", "MAALI",
-    "TENNIS", "SHAKKI", "JUOKSU", "VOITTO", "HIIHTO", "OTTELU", "MITALI",
-    "PYÖRÄILY", "LUISTELU", "MELONTA", "JOUKKUE", "ENNÄTYS",
+    "UINTI", "PAINI", "JOOGA", "MAALI", "MAILA",
+    "TENNIS", "SHAKKI", "JUOKSU", "VOITTO", "HIIHTO", "OTTELU", "MITALI", "KEIHÄS", "KIEKKO", "VERKKO", "TREENI",
+    "PYÖRÄILY", "LUISTELU", "MELONTA", "JOUKKUE", "ENNÄTYS", "KUNTOILU",
     "SUKELLUS", "KIIPEILY", "KEILAILU"
+  ],
+  "Kaupungit": [
+    "OULU", "SALO", "KEMI",
+    "TURKU", "VAASA", "ESPOO", "RAAHE", "TORNIO", "HAMINA", "FORSSA", "HANKO", "KEURUU", "JÄMSÄ", "NOKIA", "RAISIO", "SÄKYLÄ",
+    "KUOPIO", "PORVOO", "IMATRA", "LIEKSA",
+    "JOENSUU", "MIKKELI", "KAJAANI", "KOKKOLA", "IISALMI", "HEINOLA", "LOVIISA", "VARKAUS", "KURIKKA", "ORIVESI", "PARKANO", "LAITILA",
+    "NAANTALI", "HYVINKÄÄ", "KARKKILA"
   ]
 };
 
@@ -226,7 +234,6 @@ const JSONBIN_MASTER_KEY = "$2a$10$jvIugvyStpwsPeJMH1mApeff98LdrrZtND1tjWd7Xfed6
 const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_BIN_ID;
 
 function loadLeaderboard() {
-  // Näytetään ensin mahdollinen paikallinen kopio heti, ettei näytä tyhjältä hetken
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
     leaderboard = raw ? JSON.parse(raw) : [];
@@ -235,7 +242,6 @@ function loadLeaderboard() {
   }
   renderLeaderboard();
 
-  // Sitten haetaan tuorein yhteinen lista jsonbinista
   fetch(JSONBIN_URL + "/latest", {
     headers: { "X-Master-Key": JSONBIN_MASTER_KEY }
   })
@@ -262,9 +268,6 @@ function saveLeaderboardLocalCache() {
 function saveLeaderboardToStorage() {
   saveLeaderboardLocalCache();
 
-  // Haetaan ensin tuorein yhteinen lista (jottei ylikirjoiteta jonkun toisen juuri
-  // lisäämää tulosta), yhdistetään oma uusi tuloksemme siihen, ja lähetetään
-  // koko yhdistetty top-5-lista takaisin.
   fetch(JSONBIN_URL + "/latest", {
     headers: { "X-Master-Key": JSONBIN_MASTER_KEY }
   })
@@ -358,8 +361,8 @@ function confirmNickname() {
   if (!name) name = "Nimetön";
 
   leaderboard.push({ name: name, score: pendingScore });
-  renderLeaderboard(); // näytetään heti paikallinen arvio
-  saveLeaderboardToStorage(); // hakee, yhdistää ja tallentaa yhteiseen listaan taustalla
+  renderLeaderboard();
+  saveLeaderboardToStorage();
 
   document.getElementById("nicknameModal").style.display = "none";
 
@@ -490,9 +493,12 @@ function useHint() {
   revealedPositions.push(pos);
   hintsLeft--;
 
+  totalScore = Math.max(0, totalScore - 1);
+  document.getElementById("scoreInfo").textContent = "Pisteet: " + totalScore;
+
   const letter = [...targetWord][pos];
   document.getElementById("hintMessage").textContent =
-    "Vihje: kirjain " + (pos + 1) + " on \"" + letter + "\"";
+    "Vihje: kirjain " + (pos + 1) + " on \"" + letter + "\" (-1p)";
   const hintKey = document.getElementById("key-VIHJE");
   hintKey.textContent = "Vihje (" + hintsLeft + ")";
   if (hintsLeft <= 0) hintKey.disabled = true;
