@@ -132,11 +132,12 @@
     <div id="nicknameScoreText" style="color:#e0c060; margin-bottom:15px;"></div>
     <input type="text" id="nicknameInput" maxlength="12" placeholder="Nimimerkkisi"
       style="width:100%; box-sizing:border-box; padding:10px; font-size:16px; border-radius:4px; border:none; text-align:center; margin-bottom:12px;">
-    <button onclick="confirmNickname()" style="width:100%;">Tallenna</button>
+    <button id="confirmNicknameBtn" style="width:100%;">Tallenna</button>
   </div>
 </div>
 
 <script>
+(function() {
 // Kaikki sanat ovat oikeita suomenkielisiä sanoja (kielitoimiston sanakirjan mukaisia perusmuotoja),
 // jaoteltuna aihepiireittäin. Sanan pituus vaihtelee 4-8 kirjaimen välillä.
 // Aihepiiri ja sana arvotaan joka uudessa pelissä.
@@ -230,7 +231,7 @@ let totalScore = 0; // nousee joka voitetulla sanalla, nollautuu kun peli alkaa 
 let leaderboard = [];
 const LEADERBOARD_KEY = "sanapeli_leaderboard";
 const JSONBIN_BIN_ID = "6a4d4668f5f4af5e296dcd9b";
-const JSONBIN_MASTER_KEY = "$2a$10$jvIugvyStpwsPeJMH1mApeff98LdrrZtND1tjWd7Xfed6KEiFHmNi";
+const JSONBIN_ACCESS_KEY = "$2a$10$ZssJcM6uhaJZ/gAwrgA1o.GT1lx1CY9hHYXIaG655ijRDfr4jZc0K";
 const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_BIN_ID;
 
 function loadLeaderboard() {
@@ -243,7 +244,7 @@ function loadLeaderboard() {
   renderLeaderboard();
 
   fetch(JSONBIN_URL + "/latest", {
-    headers: { "X-Master-Key": JSONBIN_MASTER_KEY }
+    headers: { "X-Access-Key": JSONBIN_ACCESS_KEY }
   })
     .then(res => res.ok ? res.json() : Promise.reject(res.status))
     .then(data => {
@@ -269,7 +270,7 @@ function saveLeaderboardToStorage() {
   saveLeaderboardLocalCache();
 
   fetch(JSONBIN_URL + "/latest", {
-    headers: { "X-Master-Key": JSONBIN_MASTER_KEY }
+    headers: { "X-Access-Key": JSONBIN_ACCESS_KEY }
   })
     .then(res => res.ok ? res.json() : Promise.reject(res.status))
     .then(data => {
@@ -293,7 +294,7 @@ function saveLeaderboardToStorage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "X-Master-Key": JSONBIN_MASTER_KEY
+          "X-Access-Key": JSONBIN_ACCESS_KEY
         },
         body: JSON.stringify({ scores: leaderboard })
       });
@@ -671,7 +672,11 @@ document.getElementById("nicknameInput").addEventListener("keydown", function(e)
   }
 });
 
+document.getElementById("confirmNicknameBtn").addEventListener("click", confirmNickname);
+
 newGame();
+
+})();
 </script>
 
 </body>
