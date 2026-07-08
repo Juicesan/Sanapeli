@@ -224,6 +224,8 @@ let gameOver = false;
 let letterStates = {}; // kirjaimen paras tähän mennessä tiedetty tila: correct/present/absent
 let level = 1;
 let totalScore = 0; // nousee joka voitetulla sanalla, nollautuu kun peli alkaa alusta
+let recentWords = []; // viimeksi käytetyt sanat, jotta sama sana ei toistu heti
+const RECENT_WORDS_LIMIT = 15; // kuinka monta viimeisintä sanaa muistetaan
 
 // Parhaat tulokset: tallennetaan jsonbin.io-palveluun, jolloin lista on YHTEINEN
 // kaikille pelaajille (ei vain oman selaimen muistissa). Paikallinen localStorage
@@ -235,6 +237,7 @@ const JSONBIN_ACCESS_KEY = "$2a$10$ZssJcM6uhaJZ/gAwrgA1o.GT1lx1CY9hHYXIaG655ijRD
 const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_BIN_ID;
 
 function loadLeaderboard() {
+  // Näytetään ensin mahdollinen paikallinen kopio heti, ettei näytä tyhjältä hetken
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
     leaderboard = raw ? JSON.parse(raw) : [];
@@ -243,6 +246,7 @@ function loadLeaderboard() {
   }
   renderLeaderboard();
 
+  // Sitten haetaan tuorein yhteinen lista jsonbinista
   fetch(JSONBIN_URL + "/latest", {
     headers: { "X-Access-Key": JSONBIN_ACCESS_KEY }
   })
@@ -269,6 +273,9 @@ function saveLeaderboardLocalCache() {
 function saveLeaderboardToStorage() {
   saveLeaderboardLocalCache();
 
+  // Haetaan ensin tuorein yhteinen lista (jottei ylikirjoiteta jonkun toisen juuri
+  // lisäämää tulosta), yhdistetään oma uusi tuloksemme siihen, ja lähetetään
+  // koko yhdistetty top-5-lista takaisin.
   fetch(JSONBIN_URL + "/latest", {
     headers: { "X-Access-Key": JSONBIN_ACCESS_KEY }
   })
@@ -362,8 +369,8 @@ function confirmNickname() {
   if (!name) name = "Nimetön";
 
   leaderboard.push({ name: name, score: pendingScore });
-  renderLeaderboard();
-  saveLeaderboardToStorage();
+  renderLeaderboard(); // näytetään heti paikallinen arvio
+  saveLeaderboardToStorage(); // hakee, yhdistää ja tallentaa yhteiseen listaan taustalla
 
   document.getElementById("nicknameModal").style.display = "none";
 
@@ -388,8 +395,19 @@ function newGame(resetLevel = true) {
   const categoryNames = Object.keys(categories);
   currentCategory = categoryNames[Math.floor(Math.random() * categoryNames.length)];
   const wordList = categories[currentCategory];
-  targetWord = wordList[Math.floor(Math.random() * wordList.length)];
+
+  // Suositaan sanoja joita ei ole käytetty äskettäin; jos kaikki kategorian sanat
+  // sattuisivat olemaan "tuoreita" (mahdollista pienemmissä kategorioissa), käytetään
+  // silti koko listaa varajärjestelmänä.
+  const freshWords = wordList.filter(w => !recentWords.includes(w));
+  const pickFrom = freshWords.length > 0 ? freshWords : wordList;
+  targetWord = pickFrom[Math.floor(Math.random() * pickFrom.length)];
   wordLength = [...targetWord].length;
+
+  recentWords.push(targetWord);
+  if (recentWords.length > RECENT_WORDS_LIMIT) {
+    recentWords.shift();
+  }
 
   currentRow = 0;
   currentGuess = new Array(wordLength).fill("");
